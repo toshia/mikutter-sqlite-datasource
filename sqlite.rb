@@ -59,20 +59,22 @@ SQL
      if id.is_a? Array or id.is_a? Set
        table.filter(@primary_key => id).map(&method(:unserialize_record)).to_a
      else
-       table.filter(@primary_key => id).map(&method(:unserialize_record)).first end end
+       table.filter(@primary_key => id).map(&method(:unserialize_record)).first end
+   rescue SQLite3::Exception, Sequel::Error => e
+     error e
+     nil end
 
-    def store_datum(datum)
-      record = table.filter(@primary_key => datum[@primary_key])
-      if record
-        record.update serialize_record(datum)
-      else
-        table << serialize_record(datum)
-      end
-      true
-    rescue Sequel::Error => e
-      error e
-      false
-    end
+   def store_datum(datum)
+     record = table.filter(@primary_key => datum[@primary_key])
+     if record
+       record.update serialize_record(datum)
+     else
+       table << serialize_record(datum)
+     end
+     true
+   rescue SQLite3::Exception, Sequel::Error => e
+     error e
+     false end
 
    def unserialize_record(record)
      record end
@@ -106,8 +108,8 @@ SQL
         source: record[:source],
         geo: record[:geo],
         exact: record[:exact] != 0,
-        modified: Time.new(record[:modified]),
-        created: Time.new(record[:created])
+        modified: Time.at(record[:modified]),
+        created: Time.at(record[:created])
       }
       result[:receiver] = User.findbyid(record[:receiver_id]) if record[:receiver_id]
       result[:replyto] = Message.findbyid(record[:replyto_id]) if record[:replyto_id]
